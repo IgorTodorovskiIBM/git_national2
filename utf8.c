@@ -3,6 +3,9 @@
 #include "git-compat-util.h"
 #include "strbuf.h"
 #include "utf8.h"
+#ifdef __MVS__
+extern int utf8_ccsid;
+#endif
 
 /* This code is originally from https://www.cl.cam.ac.uk/~mgk25/ucs/ */
 
@@ -591,6 +594,20 @@ char *reencode_string_len(const char *in, size_t insz,
 		out_encoding = "UTF-32BE";
 #endif
 	}
+
+#ifdef __MVS__
+  if (utf8_ccsid == 819) {
+    //HACK: For backwards compat UTF CCSID=819, ISO8859-1 really means utf-8 in the z/OS world
+    if (strcasecmp("ISO8859-1", in_encoding) == 0) {
+      in_encoding = "UTF-8";
+      out_encoding = "UTF-8";
+    }
+    if (strcasecmp("ISO8859-1", out_encoding) == 0) {
+      in_encoding = "UTF-8";
+      out_encoding = "UTF-8";
+    }
+  }
+#endif
 
 	conv = iconv_open(out_encoding, in_encoding);
 	if (conv == (iconv_t) -1) {

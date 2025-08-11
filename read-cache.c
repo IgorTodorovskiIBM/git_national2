@@ -235,6 +235,9 @@ static int ce_compare_data(struct index_state *istate,
 	int fd = git_open_cloexec(ce->name, O_RDONLY);
 
 	if (fd >= 0) {
+#ifdef __MVS__
+    __disableautocvt(fd);
+#endif
 		struct object_id oid;
 		if (!index_fd(istate, &oid, fd, st, OBJ_BLOB, ce->name, 0))
 			match = !oideq(&oid, &ce->oid);

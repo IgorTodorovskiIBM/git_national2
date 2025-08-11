@@ -4,6 +4,7 @@
  * Copyright (C) 2006 Linus Torvalds
  */
 
+
 #include "builtin.h"
 #include "advice.h"
 #include "config.h"
@@ -439,7 +440,9 @@ int cmd_add(int argc,
 	parse_pathspec(&pathspec, 0,
 		       PATHSPEC_PREFER_FULL |
 		       PATHSPEC_SYMLINK_LEADING_PATH,
-		       prefix, argv);
+		       prefix, argv
+);
+
 
 	if (pathspec_from_file) {
 		if (pathspec.nr)

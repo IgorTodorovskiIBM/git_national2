@@ -42,6 +42,12 @@
 #include "loose.h"
 #include "object-file-convert.h"
 
+#ifdef __MVS__
+#include <_Ccsid.h>
+#include "read-cache-ll.h"
+#endif
+
+
 /* The maximum size for an object header. */
 #define MAX_HEADER_LEN 32
 
@@ -2814,18 +2820,88 @@ int index_fd(struct index_state *istate, struct object_id *oid,
 	return ret;
 }
 
+#ifdef __MVS__
+void validate_codeset(struct index_state *istate, const char *path, int* autoconvertToASCII) {
+       struct conv_attrs ca;
+  struct stat st;
+  unsigned short attr_ccsid;
+  unsigned short file_ccsid;
+
+  if (ignore_file_tags)
+    return;
+
+  *autoconvertToASCII = 0;
+       convert_attrs(istate, &ca, path);
+  if (ca.attr_action == CRLF_BINARY) {
+    attr_ccsid = FT_BINARY;
+  }
+  else if (ca.working_tree_encoding) {
+    attr_ccsid = __toCcsid(ca.working_tree_encoding);
+  }
+  else {
+    attr_ccsid = utf8_ccsid;
+  }
+
+  if (stat(path, &st) < 0)
+    return;
+
+  file_ccsid = st.st_tag.ft_ccsid;
+
+  if (file_ccsid == FT_UNTAGGED) {
+    die("File %s is untagged, set the correct file tag (using the chtag command).", path);
+  }
+
+  if (attr_ccsid != file_ccsid) {
+    if (file_ccsid == 1047 && attr_ccsid == 819) {
+      *autoconvertToASCII = 1;
+      return;
+    }
+    // Allow tag mixing of 819 and 1208
+    if ((file_ccsid == 819 || file_ccsid == 1208) && (attr_ccsid == 1208 || attr_ccsid == 819)) {
+      return;
+    }
+    // Don't check for binary files, just add them
+    if (attr_ccsid == FT_BINARY)
+      return;
+
+   char attr_csname[_XOPEN_PATH_MAX] = {0};
+    char file_csname[_XOPEN_PATH_MAX] = {0};
+    if (attr_ccsid != FT_BINARY) {
+      __toCSName(attr_ccsid, attr_csname);
+    } else {
+      snprintf(attr_csname, _XOPEN_PATH_MAX, "%s", "binary");
+    }
+    if (file_ccsid != FT_BINARY) {
+      __toCSName(file_ccsid, file_csname);
+    } else {
+      snprintf(file_csname, _XOPEN_PATH_MAX, "%s", "binary");
+    }
+    die("%s added file: file tag (%s) does not match working-tree-encoding (%s)", path, file_csname, attr_csname);
+  }
+}
+#endif
+
 int index_path(struct index_state *istate, struct object_id *oid,
 	       const char *path, struct stat *st, unsigned flags)
 {
 	int fd;
 	struct strbuf sb = STRBUF_INIT;
 	int rc = 0;
+	struct conv_attrs ca;
+	int autocvtToASCII;
 
 	switch (st->st_mode & S_IFMT) {
 	case S_IFREG:
+#ifdef __MVS__
+    validate_codeset(istate, path, &autocvtToASCII);
+#endif
 		fd = open(path, O_RDONLY);
 		if (fd < 0)
 			return error_errno("open(\"%s\")", path);
+#ifdef __MVS__
+    if (!autocvtToASCII)
+      __disableautocvt(fd);
+#endif
 		if (index_fd(istate, oid, fd, st, OBJ_BLOB, path, flags) < 0)
 			return error(_("%s: failed to insert into database"),
 				     path);

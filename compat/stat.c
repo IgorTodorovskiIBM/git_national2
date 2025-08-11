@@ -25,7 +25,7 @@ static inline mode_t mode_native_to_git(mode_t native_mode)
 
 int git_stat(const char *path, struct stat *buf)
 {
-	int rc = stat(path, buf);
+	int rc = zos_stat(path, buf);
 	if (rc == 0)
 		buf->st_mode = mode_native_to_git(buf->st_mode);
 	return rc;
@@ -41,7 +41,7 @@ int git_fstat(int fd, struct stat *buf)
 
 int git_lstat(const char *path, struct stat *buf)
 {
-	int rc = lstat(path, buf);
+	int rc = zos_lstat(path, buf);
 	if (rc == 0)
 		buf->st_mode = mode_native_to_git(buf->st_mode);
 	return rc;

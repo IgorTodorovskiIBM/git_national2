@@ -474,6 +474,10 @@ struct cache_entry *refresh_cache_entry(struct index_state *, struct cache_entry
 
 void set_alternate_index_output(const char *);
 
+#ifdef __MVS__
+extern int ignore_file_tags;
+#endif
+
 extern int verify_index_checksum;
 extern int verify_ce_order;
 

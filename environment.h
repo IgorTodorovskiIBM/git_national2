@@ -157,7 +157,9 @@ extern size_t packed_git_limit;
 extern unsigned long big_file_threshold;
 extern unsigned long pack_size_limit_cfg;
 extern int max_allowed_tree_depth;
-
+#ifdef __MVS__
+extern int utf8_ccsid;
+#endif
 extern int core_preload_index;
 extern int precomposed_unicode;
 extern int protect_hfs;
@@ -197,9 +199,11 @@ extern int repository_format_precious_objects;
 
 const char *get_log_output_encoding(void);
 const char *get_commit_output_encoding(void);
+extern const char *get_worktree_filename_encoding(void);
 
 extern char *git_commit_encoding;
 extern char *git_log_output_encoding;
+extern char *git_worktree_filename_encoding;
 
 extern char *editor_program;
 extern char *askpass_program;

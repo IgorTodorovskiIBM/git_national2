@@ -460,6 +460,35 @@ static int run_builtin(struct cmd_struct *p, int argc, const char **argv, struct
 	}
 	assert(!prefix || *prefix);
 	precompose_argv_prefix(argc, argv, NULL);
+#if 0
+    const char *target_encoding = get_worktree_filename_encoding();
+    const char **converted_argv = NULL; // Array to hold new, converted pointers
+
+	fprintf(stderr, "A1\n");
+    if (target_encoding)  {
+	fprintf(stderr, "A1a: %s\n", target_encoding);
+	if (strcmp(target_encoding, "UTF-8") != 0) {
+        // We need to convert the command-line arguments from EBCDIC to UTF-8.
+        // We allocate a new array to hold the pointers to the converted strings.
+        // It needs to be one larger to be NULL-terminated, which some functions expect.
+	fprintf(stderr, "A2\n");
+        converted_argv = xcalloc(argc + 1, sizeof(char *));
+        int i;
+        for (i = 0; i < argc; i++) {
+	fprintf(stderr, "Argv: %s\n", argv[i]);
+                char* ebcdir_arg = xstrdup(argv[i]);
+                __a2e_s(ebcdir_arg);
+            converted_argv[i] = git_worktree_enc_to_utf8(ebcdir_arg);
+            if (!converted_argv[i]) {
+                // Handle conversion failure for an argument if necessary
+                warning("could not convert pathspec '%.*s' from EBCDIC to UTF-8", 40, argv[i]);
+                // Fallback: use the original unconverted (problematic) argument
+                converted_argv[i] = xstrdup(argv[i]);
+            }
+        }
+	argv = converted_argv;
+    }}
+#endif
 	if (use_pager == -1 && run_setup &&
 		!(p->option & DELAY_PAGER_CONFIG))
 		use_pager = check_pager_config(the_repository, p->cmd);
@@ -508,7 +537,7 @@ static struct cmd_struct commands[] = {
 	{ "archive", cmd_archive, RUN_SETUP_GENTLY },
 	{ "backfill", cmd_backfill, RUN_SETUP },
 	{ "bisect", cmd_bisect, RUN_SETUP },
-	{ "blame", cmd_blame, RUN_SETUP },
+	{ "blame", cmd_blame, RUN_SETUP | NEED_WORK_TREE },
 	{ "branch", cmd_branch, RUN_SETUP | DELAY_PAGER_CONFIG },
 	{ "bugreport", cmd_bugreport, RUN_SETUP_GENTLY },
 	{ "bundle", cmd_bundle, RUN_SETUP_GENTLY },

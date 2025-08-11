@@ -1072,7 +1072,6 @@ static CURL *get_curl_handle(void)
 	if (ssl_cipherlist != NULL && *ssl_cipherlist)
 		curl_easy_setopt(result, CURLOPT_SSL_CIPHER_LIST,
 				ssl_cipherlist);
-
 	if (ssl_cert)
 		curl_easy_setopt(result, CURLOPT_SSLCERT, ssl_cert);
 	if (ssl_cert_type)
@@ -1335,6 +1334,10 @@ void http_init(struct remote *remote, const char *url, int proactive_auth)
 	set_from_env(&ssl_key_type, "GIT_SSL_KEY_TYPE");
 	set_from_env(&ssl_capath, "GIT_SSL_CAPATH");
 	set_from_env(&ssl_cainfo, "GIT_SSL_CAINFO");
+#ifdef __MVS__
+  if (!ssl_cainfo)
+	  set_from_env(&ssl_cainfo, "ZOPEN_GIT_SSL_CAINFO");
+#endif
 
 	set_from_env(&user_agent, "GIT_HTTP_USER_AGENT");
 

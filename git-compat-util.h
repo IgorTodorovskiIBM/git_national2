@@ -258,7 +258,11 @@ static inline int _have_unix_sockets(void)
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stddef.h>
+#define release stdlib_release
+#define fetch stdlib_fetch
 #include <stdlib.h>
+#undef fetch
+#undef release
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
@@ -977,6 +981,65 @@ char *gitstrdup(const char *s);
 #  define fopen(a,b) git_fopen(a,b)
 # endif
 FILE *git_fopen(const char*, const char*);
+#endif
+
+#ifdef __MVS__
+int zos_open(const char *path, int flags, ...);
+int zos_stat(const char *path, struct stat *buf);
+int zos_lstat(const char *path, struct stat *buf);
+int lstat_orig(const char *path, struct stat *buf) asm("@@A00136");
+int stat_orig(const char *path, struct stat *buf) asm("@@A00132");
+FILE *zos_fopen(const char *path, const char *mode);
+int zos_unlink(const char *path);
+int zos_rmdir(const char *path);
+int zos_mkdir(const char *path, mode_t mode);
+int zos_access(const char *path, int mode); // Added zos_access
+char *zos_realpath(const char *path,
+                      char *resolved_path);
+int zos_rename(const char *oldpath, const char *newpath);
+ssize_t zos_readlink(const char *path, char *buf, size_t bufsize);
+int zos_symlink(const char *target, const char *linkpath);
+DIR *zos_opendir(const char *name);
+struct dirent *zos_readdir(DIR *dirp); // Added zos_readdir
+
+
+// --- Macro Redirections ---
+// These redirect standard POSIX function calls to your zos_* wrappers.
+
+#undef open
+#define open zos_open
+
+#undef realpath
+#define realpath zos_realpath
+
+#undef access // Added access macro
+#define access zos_access // Added access macro
+#undef fopen
+#define fopen zos_fopen
+
+#undef unlink
+#define unlink zos_unlink
+
+#undef rmdir
+#define rmdir zos_rmdir
+
+#undef mkdir
+#define mkdir(a,b) zos_mkdir(a,b)
+
+#undef rename
+#define rename zos_rename
+
+#undef readlink
+#define readlink zos_readlink
+
+#undef symlink
+#define symlink zos_symlink
+
+#undef opendir
+#define opendir zos_opendir
+
+#undef readdir // Added readdir macro
+#define readdir zos_readdir // Added readdir macro
 #endif
 
 #ifdef SNPRINTF_RETURNS_BOGUS

@@ -639,6 +639,30 @@ void parse_pathspec(struct pathspec *pathspec,
 				  "please use . instead if you meant to match all paths");
 		n++;
 	}
+#ifdef __MVS__
+    const char *target_encoding = get_worktree_filename_encoding();
+    const char **converted_argv = NULL; // Array to hold new, converted pointers
+    if (target_encoding)  {
+	if (strcmp(target_encoding, "UTF-8") != 0) {
+        // We need to convert the command-line arguments from EBCDIC to UTF-8.
+        // We allocate a new array to hold the pointers to the converted strings.
+        // It needs to be one larger to be NULL-terminated, which some functions expect.
+        converted_argv = xcalloc(n + 1, sizeof(char *));
+        int i;
+        for (i = 0; i < n; i++) {
+                char* ebcdir_arg = xstrdup(argv[i]);
+                __a2e_s(ebcdir_arg);
+            converted_argv[i] = git_worktree_enc_to_utf8(ebcdir_arg);
+            if (!converted_argv[i]) {
+                // Handle conversion failure for an argument if necessary
+                warning("could not convert pathspec '%.*s' from EBCDIC to UTF-8", 40, argv[i]);
+                // Fallback: use the original unconverted (problematic) argument
+                converted_argv[i] = xstrdup(argv[i]);
+            }
+        }
+	argv = converted_argv;
+    }}
+#endif
 
 	pathspec->nr = n;
 	ALLOC_ARRAY(pathspec->items, n + 1);

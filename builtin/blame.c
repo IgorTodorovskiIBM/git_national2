@@ -874,7 +874,7 @@ static void build_ignorelist(struct blame_scoreboard *sb,
 int cmd_blame(int argc,
 	      const char **argv,
 	      const char *prefix,
-	      struct repository *repo UNUSED)
+	      struct repository *repo)
 {
 	struct rev_info revs;
 	char *path = NULL;
@@ -1118,6 +1118,27 @@ parse_done:
 	sb.contents_from = contents_from;
 	sb.reverse = reverse;
 	sb.repo = the_repository;
+
+#ifdef __MVS__
+    const char *target_encoding = get_worktree_filename_encoding();
+    if (target_encoding)  {
+	if (strcmp(target_encoding, "UTF-8") != 0) {
+        // We need to convert the command-line arguments from EBCDIC to UTF-8.
+        // We allocate a new array to hold the pointers to the converted strings.
+        // It needs to be one larger to be NULL-terminated, which some functions expect.
+        char* ebcdir_arg = xstrdup(path);
+        __a2e_s(ebcdir_arg);
+        ebcdir_arg = git_worktree_enc_to_utf8(ebcdir_arg);
+        if (!ebcdir_arg) {
+                // Handle conversion failure for an argument if necessary
+                warning("could not convert pathspec '%.*s' from EBCDIC to UTF-8", 40, path);
+                // Fallback: use the original unconverted (problematic) argument
+                ebcdir_arg = path;
+            }
+	path = ebcdir_arg;
+        }
+    }
+#endif
 	sb.path = path;
 	build_ignorelist(&sb, &ignore_revs_file_list, &ignore_rev_list);
 	string_list_clear(&ignore_revs_file_list, 0);

@@ -3065,6 +3065,29 @@ int setup_revisions(int argc, const char **argv, struct rev_info *revs, struct s
 			 *     as a valid filename.
 			 * but the latter we have checked in the main loop.
 			 */
+#ifdef __MVS__
+    const char *target_encoding = get_worktree_filename_encoding();
+    const char **converted_argv = NULL; // Array to hold new, converted pointers
+    if (target_encoding)  {
+	if (strcmp(target_encoding, "UTF-8") != 0) {
+        // We need to convert the command-line arguments from EBCDIC to UTF-8.
+        // We allocate a new array to hold the pointers to the converted strings.
+        // It needs to be one larger to be NULL-terminated, which some functions expect.
+        converted_argv = xcalloc(argc + 1, sizeof(char *));
+			for (j = 0; j < argc; j++) {
+                char* ebcdir_arg = xstrdup(argv[j]);
+                __a2e_s(ebcdir_arg);
+            converted_argv[j] = git_worktree_enc_to_utf8(ebcdir_arg);
+            if (!converted_argv[j]) {
+                // Handle conversion failure for an argument if necessary
+                warning("could not convert pathspec '%.*s' from EBCDIC to UTF-8", 40, argv[j]);
+                // Fallback: use the original unconverted (problematic) argument
+                converted_argv[j] = xstrdup(argv[j]);
+            }
+        }
+	argv = converted_argv;
+    }}
+#endif
 			for (j = i; j < argc; j++)
 				verify_filename(revs->prefix, argv[j], j == i);
 

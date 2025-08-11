@@ -873,9 +873,10 @@ static struct attr_stack *read_attr(struct index_state *istate,
 
 const char *git_attr_system_file(void)
 {
-	static const char *system_wide;
+	char *system_wide = xstrdup_or_null(getenv("GIT_ATTR_SYSTEM"));
 	if (!system_wide)
 		system_wide = system_path(ETC_GITATTRIBUTES);
+	normalize_path_copy(system_wide, system_wide);
 	return system_wide;
 }
 

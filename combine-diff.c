@@ -1074,6 +1074,10 @@ static void show_patch_diff(struct combine_diff_path *elem, int num_parent,
 			ssize_t done;
 			int is_file, i;
 
+#ifdef __MVS__
+      __disableautocvt(fd);      
+#endif
+
 			elem->mode = canon_mode(st.st_mode);
 			/* if symlinks don't work, assume symlink if all parents
 			 * are symlinks

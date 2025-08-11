@@ -274,6 +274,11 @@ static struct commit *fake_working_tree_commit(struct repository *r,
 		if (strbuf_read(&buf, 0, 0) < 0)
 			die_errno("failed to read from stdin");
 	}
+#ifdef __MVS__
+	int autocvtToASCII;
+	validate_codeset(r->index, path, &autocvtToASCII);
+	if (autocvtToASCII)
+#endif
 	convert_to_git(r->index, path, buf.buf, buf.len, &buf, 0);
 	origin->file.ptr = buf.buf;
 	origin->file.size = buf.len;

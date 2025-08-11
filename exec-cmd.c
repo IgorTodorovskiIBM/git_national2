@@ -158,8 +158,8 @@ static int git_get_exec_path_darwin(struct strbuf *buf)
  */
 static int git_get_exec_path_zos(struct strbuf *buf)
 {
-	char *dir = __getprogramdir();
-	char *exe = getprogname();
+	volatile char * volatile dir = __getprogramdir();
+	volatile char * volatile exe = getprogname();
 	if (dir && exe) {
 		strbuf_addf(buf, "%s/%s", dir, exe);
 		return 0;

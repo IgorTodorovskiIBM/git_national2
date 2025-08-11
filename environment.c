@@ -46,6 +46,11 @@ char *git_attributes_file;
 int zlib_compression_level = Z_BEST_SPEED;
 int pack_compression_level = Z_DEFAULT_COMPRESSION;
 int fsync_object_files = -1;
+#ifdef __MVS__
+int ignore_file_tags = 0;
+int utf8_ccsid = 1208;
+char* git_worktree_filename_encoding = NULL;
+#endif
 int use_fsync = -1;
 enum fsync_method fsync_method = FSYNC_METHOD_DEFAULT;
 enum fsync_component fsync_components = FSYNC_COMPONENTS_DEFAULT;
@@ -205,6 +210,11 @@ const char *get_log_output_encoding(void)
 const char *get_commit_output_encoding(void)
 {
 	return git_commit_encoding ? git_commit_encoding : "UTF-8";
+}
+
+const char *get_worktree_filename_encoding(void)
+{
+	return git_worktree_filename_encoding ? git_worktree_filename_encoding : "UTF-8";
 }
 
 int use_optional_locks(void)

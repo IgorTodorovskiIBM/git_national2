@@ -34,6 +34,9 @@
 #include "object-store-ll.h"
 #include "pager.h"
 #include "path.h"
+#ifdef __MVS__
+#include "read-cache-ll.h"
+#endif
 #include "utf8.h"
 #include "color.h"
 #include "refs.h"
@@ -1503,6 +1506,23 @@ static int git_default_core_config(const char *var, const char *value,
 		auto_crlf = git_config_bool(var, value);
 		return 0;
 	}
+
+ #ifdef __MVS__
+	if (!strcmp(var, "core.ignorefiletags")) {
+		ignore_file_tags = git_config_bool(var, value);
+		return 0;
+	}
+
+	if (!strcmp(var, "core.utf8ccsid")) {
+		utf8_ccsid = git_config_ulong(var, value, ctx->kvi);
+		return 0;
+	}
+
+	if (!strcmp(var, "core.worktreefilenameencoding")) {
+		FREE_AND_NULL(git_worktree_filename_encoding);
+		return git_config_string(&git_worktree_filename_encoding, var, value);
+	}
+#endif
 
 	if (!strcmp(var, "core.safecrlf")) {
 		int eol_rndtrp_die;
