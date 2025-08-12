@@ -2260,17 +2260,37 @@ static int handle_revision_arg_1(const char *arg_, struct rev_info *revs, int fl
 	}
 	if (!cant_be_filename)
 		verify_non_filename(revs->prefix, arg);
+
+	char *converted_path = NULL;
+#ifdef __MVS__
+	if (oc.path_matching) {
+		const char *target_encoding = get_worktree_filename_encoding();
+		if (target_encoding && strcmp(target_encoding, "UTF-8") != 0) {
+			char *ebcdic_path = xstrdup(oc.path);
+			__a2e_s(ebcdic_path);
+			converted_path = git_worktree_enc_to_utf8(ebcdic_path);
+			free(ebcdic_path);
+			if (!converted_path) {
+				warning("could not convert path '%.*s' from EBCDIC to UTF-8", 40, oc.path);
+			}
+		}
+	}
+#endif
+
 	object = get_reference(revs, arg, &oid, flags ^ local_flags);
 	if (!object) {
 		ret = (revs->ignore_missing || revs->do_not_die_on_missing_objects) ? 0 : -1;
 		goto out;
 	}
 	add_rev_cmdline(revs, object, arg_, REV_CMD_REV, flags ^ local_flags);
-	add_pending_object_with_path(revs, object, arg, oc.mode, oc.path);
+	add_pending_object_with_path(revs, object, arg, oc.mode, converted_path ? converted_path : oc.path);
 
 	ret = 0;
 
 out:
+#ifdef __MVS__
+	free(converted_path);
+#endif
 	object_context_release(&oc);
 	return ret;
 }
@@ -3065,29 +3085,7 @@ int setup_revisions(int argc, const char **argv, struct rev_info *revs, struct s
 			 *     as a valid filename.
 			 * but the latter we have checked in the main loop.
 			 */
-#ifdef __MVS__
-    const char *target_encoding = get_worktree_filename_encoding();
-    const char **converted_argv = NULL; // Array to hold new, converted pointers
-    if (target_encoding)  {
-	if (strcmp(target_encoding, "UTF-8") != 0) {
-        // We need to convert the command-line arguments from EBCDIC to UTF-8.
-        // We allocate a new array to hold the pointers to the converted strings.
-        // It needs to be one larger to be NULL-terminated, which some functions expect.
-        converted_argv = xcalloc(argc + 1, sizeof(char *));
-			for (j = 0; j < argc; j++) {
-                char* ebcdir_arg = xstrdup(argv[j]);
-                __a2e_s(ebcdir_arg);
-            converted_argv[j] = git_worktree_enc_to_utf8(ebcdir_arg);
-            if (!converted_argv[j]) {
-                // Handle conversion failure for an argument if necessary
-                warning("could not convert pathspec '%.*s' from EBCDIC to UTF-8", 40, argv[j]);
-                // Fallback: use the original unconverted (problematic) argument
-                converted_argv[j] = xstrdup(argv[j]);
-            }
-        }
-	argv = converted_argv;
-    }}
-#endif
+
 			for (j = i; j < argc; j++)
 				verify_filename(revs->prefix, argv[j], j == i);
 

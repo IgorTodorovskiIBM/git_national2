@@ -765,11 +765,72 @@ DIR *zos_opendir(const char *name) {
 }
 
 
+
+int zos_chmod(const char *path, mode_t mode) {
+#ifdef __MVS__
+    const char *target_encoding = get_worktree_filename_encoding();
+    char* converted_path = NULL;
+    int ret = -1;
+    int saved_errno_call = 0;
+
+    if (target_encoding && strcmp(target_encoding, "UTF-8") != 0) {
+        converted_path = git_utf8_to_worktree_enc(path);
+        if (!converted_path) {
+            if (errno == 0) errno = EILSEQ;
+            return -1;
+        }
+        trace_printf("zos_chmod: EBCDIC path for '%s' (orig: '%s') with encoding '%s'\n", converted_path, path, target_encoding);
+        int original_thread_mode = __ae_thread_swapmode(__AE_EBCDIC_MODE);
+        ret = __chmod_e(converted_path, mode);
+        saved_errno_call = errno;
+        __ae_thread_swapmode(original_thread_mode);
+        errno = saved_errno_call;
+        free(converted_path);
+        return ret;
+    } else {
+        trace_printf("zos_chmod: ASCII path for '%s'\n", path);
+        return __chmod_a(path, mode);
+    }
+#else // Not __MVS__
+    return chmod(path, mode);
+#endif
+}
+
+int zos_utime(const char *path, const struct utimbuf *times) {
+#ifdef __MVS__
+    const char *target_encoding = get_worktree_filename_encoding();
+    char* converted_path = NULL;
+    int ret = -1;
+    int saved_errno_call = 0;
+
+    if (target_encoding && strcmp(target_encoding, "UTF-8") != 0) {
+        converted_path = git_utf8_to_worktree_enc(path);
+        if (!converted_path) {
+            if (errno == 0) errno = EILSEQ;
+            return -1;
+        }
+        trace_printf("zos_utime: EBCDIC path for '%s' (orig: '%s') with encoding '%s'\n", converted_path, path, target_encoding);
+        int original_thread_mode = __ae_thread_swapmode(__AE_EBCDIC_MODE);
+        ret = __utime_e(converted_path, times);
+        saved_errno_call = errno;
+        __ae_thread_swapmode(original_thread_mode);
+        errno = saved_errno_call;
+        free(converted_path);
+        return ret;
+    } else {
+        trace_printf("zos_utime: ASCII path for '%s'\n", path);
+        return __utime_a(path, times);
+    }
+#else // Not __MVS__
+    return utime(path, times);
+#endif
+}
 #endif
 
 static void create_directories(const char *path, int path_len,
 			       const struct checkout *state)
 {
+
 	char *buf = xmallocz(path_len);
 	int len = 0;
 

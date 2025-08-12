@@ -1001,6 +1001,8 @@ ssize_t zos_readlink(const char *path, char *buf, size_t bufsize);
 int zos_symlink(const char *target, const char *linkpath);
 DIR *zos_opendir(const char *name);
 struct dirent *zos_readdir(DIR *dirp); // Added zos_readdir
+int zos_chmod(const char *path, mode_t mode);
+int zos_utime(const char *path, const struct utimbuf *times);
 
 
 // --- Macro Redirections ---
@@ -1040,6 +1042,13 @@ struct dirent *zos_readdir(DIR *dirp); // Added zos_readdir
 
 #undef readdir // Added readdir macro
 #define readdir zos_readdir // Added readdir macro
+
+#undef chmod
+#define chmod zos_chmod
+
+#undef utime
+#define utime zos_utime
+
 #endif
 
 #ifdef SNPRINTF_RETURNS_BOGUS
